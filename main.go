@@ -32,8 +32,8 @@ func main() {
 	client.Out <- xmpp.Presence{}
 
 	go func() {
-		for x := range client.In {
-			log.Printf("* recv: %v\n", x)
+		for msg := range client.In {
+			log.Printf("* recv: %v\n", msg)
 		}
 	}()
 
