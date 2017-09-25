@@ -3,43 +3,47 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/emgee/go-xmpp/src/xmpp"
 )
 
 const (
-	xmppBotAnswer = "im a dumb bot"
+	envXMPPID       = "XMPP_ID"
+	envXMPPPASS     = "XMPP_PASS"
+	errWrongArgs    = "XMPP_ID or XMPP_PASS not set"
+	xmppBotAnswer   = "im a dumb bot"
+	xmppConnErr     = "failed to connect "
+	xmppFailedPause = 30
 )
 
-// helper function for error checks
-func fatalOnErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-// starts xmpp session, sends initial presence and returns the xmpp client
-func xmppLogin(id string, pass string) *xmpp.XMPP {
+// starts xmpp session and returns the xmpp client
+func xmppLogin(id string, pass string) (*xmpp.XMPP, error) {
 	// parse jid structure
 	jid, err := xmpp.ParseJID(id)
-	fatalOnErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// extract/generate address:port from jid
 	addr, err := xmpp.HomeServerAddrs(jid)
-	fatalOnErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// create xml stream to address
 	stream, err := xmpp.NewStream(addr[0], nil)
-	fatalOnErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// create client (login)
 	client, err := xmpp.NewClientXMPP(stream, jid, pass, nil)
-	fatalOnErr(err)
+	if err != nil {
+		return nil, err
+	}
 
-	// announce presence
-	client.Out <- xmpp.Presence{}
-
-	return client
+	return client, nil
 }
 
 // creates MessageBody slice suitable for xmpp.Message
@@ -64,23 +68,37 @@ func handleXMPPStanza(in <-chan interface{}, out chan<- interface{}) {
 			}
 		}
 	}
+	// func returns when in chan is closed (server terminated stream)
 }
 
 func main() {
 	// get xmpp credentials from ENV
-	xi := os.Getenv("XMPP_ID")
-	xp := os.Getenv("XMPP_PASS")
+	xi := os.Getenv(envXMPPID)
+	xp := os.Getenv(envXMPPPASS)
 
 	// check if xmpp credentials are supplied
 	if len(xi) < 1 || len(xp) < 1 {
-		log.Fatal("XMPP_ID or XMPP_PASS not set")
+		log.Fatal(errWrongArgs)
 	}
 
-	// start xmpp client
-	xc := xmppLogin(xi, xp)
-
-	// dispatch incoming stanzas to handler
-	go handleXMPPStanza(xc.In, xc.Out)
+	// connect xmpp client and observe connection - reconnect if needed
+	var xc *xmpp.XMPP
+	go func() {
+		for {
+			// try to connect to xmpp server
+			var err error
+			xc, err = xmppLogin(xi, xp)
+			if err != nil {
+				// report failure and wait
+				log.Print(xmppConnErr, err)
+				time.Sleep(time.Second * time.Duration(xmppFailedPause))
+			} else {
+				// send initial presence and dispatch channels to handler
+				xc.Out <- xmpp.Presence{}
+				handleXMPPStanza(xc.In, xc.Out)
+			}
+		}
+	}()
 
 	select {}
 }
