@@ -1,5 +1,5 @@
 # xmpp-webhook
-- Multipurpose XMPP Webhook (Built for Prometheus/Grafana Alerts)
+- Multipurpose XMPP-Webhook (Built for Prometheus/Grafana Alerts)
 - Based on https://github.com/atomatt/go-xmpp
 
 ## Status
@@ -7,10 +7,15 @@
 
 ## Usage
 - `xmpp-webhook` is configured via environment variables:
-    - `XMPP_ID`
-    - `XMPP_PAS`
-    - `XMPP_RECEIVERS`
-- 
+    - `XMPP_ID` - The JID we want to use
+    - `XMPP_PAS` - The password
+    - `XMPP_RECEIVERS` - Comma-seperated list of JID's
+- After startup `xmpp-webhooks` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
+
+```
+curl -X POST -d @grafana-alert.json localhost:4321
+```
+- After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
 ```
 XMPP_ID='bot@example.com'
