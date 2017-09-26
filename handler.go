@@ -58,6 +58,14 @@ func grafanaParserFunc(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	// contruct and return alert message
-	return alert.State + ": " + alert.Title + "/" + alert.Message + "(" + alert.RuleURL + ")", nil
+	// contruct alert message
+	var message string
+	switch alert.State {
+	case "ok":
+		message = "8-) " + alert.Title
+	default:
+		message = ":'-( " + alert.Title + "\n" + alert.Message + "\n" + alert.RuleURL
+	}
+
+	return message, nil
 }
