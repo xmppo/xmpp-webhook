@@ -1,0 +1,12 @@
+[Unit]
+Description=XMPP-Webhook
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/xmpp-webhook.env
+ExecStart=/usr/local/bin/xmpp-webhook
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
