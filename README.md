@@ -10,7 +10,7 @@
     - `XMPP_ID` - The JID we want to use
     - `XMPP_PASS` - The password
     - `XMPP_RECEIVERS` - Comma-seperated list of JID's
-- After startup, `xmpp-webhooks` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
+- After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
 
 ```
 curl -X POST -d @grafana-alert.json localhost:4321/grafana
@@ -18,7 +18,7 @@ curl -X POST -d @grafana-alert.json localhost:4321/grafana
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
 ## Installation
-IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhooks` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.
+IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.
 
 - Download and extract the latest tarball (GitHub release page)
 - Install the binary: `install -D -m 744 xmpp-webhook /usr/local/bin/xmpp-webhook`
@@ -47,4 +47,4 @@ systemctl start xmpp-webhook
 - Build `xmpp-webhook`: `go build`
 
 ## Need help?
-Feel free to contact me :D.
+Feel free to contact me!
