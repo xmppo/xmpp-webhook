@@ -3,7 +3,7 @@
 - Based on https://github.com/atomatt/go-xmpp
 
 ## Status
-`xmpp-webhook` currently only provides a hook for Grafana. I will implement a `parserFunc` for Prometheus ASAP. Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/handler.go to learn how to support more source services.
+`xmpp-webhook` currently only provides a hook for Grafana. ~~I will implement a `parserFunc` for Prometheus ASAP~~. Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/handler.go to learn how to support more source services.
 
 ## Usage
 - `xmpp-webhook` is configured via environment variables:
