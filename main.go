@@ -85,7 +85,7 @@ func main() {
 				xc.Out <- xmpp.Message{
 					To: r,
 					Body: []xmpp.MessageBody{
-						xmpp.MessageBody{
+						{
 							Value: m,
 						},
 					},

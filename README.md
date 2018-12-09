@@ -3,7 +3,7 @@
 - Based on https://github.com/atomatt/go-xmpp
 
 ## Status
-`xmpp-webhook` currently only provides a hook for Grafana. ~~I will implement a `parserFunc` for Prometheus ASAP~~. Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/handler.go to learn how to support more source services.
+`xmpp-webhook` ~~currently~~ only provides a hook for Grafana. ~~I will implement a `parserFunc` for Prometheus ASAP~~. Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/handler.go to learn how to support more source services.
 
 ## Usage
 - `xmpp-webhook` is configured via environment variables:
@@ -13,7 +13,7 @@
 - After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
 
 ```
-curl -X POST -d @grafana-alert.json localhost:4321/grafana
+curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
 ```
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
@@ -40,10 +40,9 @@ systemctl start xmpp-webhook
 ```
 
 ## Building
-- Get the sources: `go get -u github.com/opthomas-prime/xmpp-webhook`
-- Install `dep`: https://github.com/golang/dep
-- Change in the project folder: `cd $GOPATH/src/github.com/opthomas-prime/xmpp-webhook`
-- Populate `vendor` folder: `dep ensure`
+- Dependencies are managed via Go Modules (https://github.com/golang/go/wiki/Modules).
+- Clone the sources
+- Change in the project folder:
 - Build `xmpp-webhook`: `go build`
 
 ## Need help?
