@@ -69,3 +69,37 @@ func grafanaParserFunc(r *http.Request) (string, error) {
 
 	return message, nil
 }
+
+/****************
+PROMETHEUS PARSER
+****************/
+func prometheusParserFunc(r *http.Request) (string, error) {
+	// get alert data from request
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// prometheus alert struct
+	alert := &struct {
+		Status      string `json:"status"`
+		ExternalURL string `json:"externalURL"`
+	}{}
+
+	// parse body into the alert struct
+	err = json.Unmarshal(body, &alert)
+	if err != nil {
+		return "", err
+	}
+
+	// contruct alert message
+	var message string
+	switch alert.Status {
+	case "resolved":
+		message = ":) " + alert.ExternalURL
+	default:
+		message = ":( " + alert.ExternalURL
+	}
+
+	return message, nil
+}

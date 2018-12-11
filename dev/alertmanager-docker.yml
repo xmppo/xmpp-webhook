@@ -1,0 +1,11 @@
+version: "3.7"
+services:
+  alertmanager:
+    image: prom/alertmanager:v0.15.3
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - target: 9093
+        published: 9093
+        protocol: tcp
+        mode: host

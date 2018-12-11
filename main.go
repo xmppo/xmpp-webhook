@@ -97,6 +97,9 @@ func main() {
 	// initialize handler for grafana alerts
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
 
+	// initialize handler for grafana alerts
+	http.Handle("/prometheus", newMessageHandler(messages, prometheusParserFunc))
+
 	// listen for requests
 	http.ListenAndServe(":4321", nil)
 }
