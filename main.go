@@ -1,41 +1,53 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
+	"mellium.im/sasl"
+	"mellium.im/xmpp"
+	"mellium.im/xmpp/dial"
+	mjid "mellium.im/xmpp/jid"
+	"mellium.im/xmpp/stanza"
+	"net"
 	"os"
-	"strings"
-
-	"github.com/emgee/go-xmpp/src/xmpp"
 )
 
-// starts xmpp session and returns the xmpp client
-func xmppLogin(id string, pass string) (*xmpp.XMPP, error) {
-	// parse jid structure
-	jid, err := xmpp.ParseJID(id)
+func panicOnErr(err error) {
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
+}
 
-	// extract/generate address:port from jid
-	addr, err := xmpp.HomeServerAddrs(jid)
-	if err != nil {
+func initXMPP(jid mjid.JID, pass string) (*xmpp.Session, error) {
+	dialer := dial.Dialer{}
+	conn, err := dialer.Dial(context.TODO(), "tcp", jid)
+	switch err.(type) {
+	default:
 		return nil, err
+	case *net.DNSError:
+		dialer = dial.Dialer{NoLookup: true, NoTLS: true}
+		conn, err = dialer.Dial(context.TODO(), "tcp", jid)
+		if err != nil {
+			return nil, err
+		}
 	}
+	return xmpp.NegotiateSession(
+		context.TODO(),
+		jid.Domain(),
+		jid,
+		conn,
+		false,
+		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
+			xmpp.BindResource(),
+			xmpp.StartTLS(true, nil),
+			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+		}}),
+	)
+}
 
-	// create xml stream to address
-	stream, err := xmpp.NewStream(addr[0], nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// create client (login)
-	client, err := xmpp.NewClientXMPP(stream, jid, pass, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+func closeXMPP(session *xmpp.Session) {
+	session.Close()
+	session.Conn().Close()
 }
 
 func main() {
@@ -49,33 +61,19 @@ func main() {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
 	}
 
-	// connect to xmpp server
-	xc, err := xmppLogin(xi, xp)
-	if err != nil {
-		log.Fatal(err)
-	}
+	jid, err := mjid.Parse(xi)
+	panicOnErr(err)
 
-	// announce initial presence
-	xc.Out <- xmpp.Presence{}
+	session, err := initXMPP(jid, xp)
+	panicOnErr(err)
 
-	// listen for incoming xmpp stanzas
-	go func() {
-		for stanza := range xc.In {
-			// check if stanza is a message
-			m, ok := stanza.(*xmpp.Message)
-			if ok && len(m.Body) > 0 {
-				// echo the message
-				xc.Out <- xmpp.Message{
-					To:   m.From,
-					Body: m.Body,
-				}
-			}
-		}
-		// xc.In is closed when the server closes the stream
-		log.Fatal("connection lost")
-	}()
+	defer closeXMPP(session)
 
-	// create chan for messages (webhooks -> xmpp)
+    panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(mjid.JID{}, stanza.AvailablePresence, nil)))
+
+	panicOnErr(session.Serve(nil))
+
+	/*// create chan for messages (webhooks -> xmpp)
 	messages := make(chan string)
 
 	// wait for messages from the webhooks and send them to all receivers
@@ -98,5 +96,5 @@ func main() {
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
 
 	// listen for requests
-	http.ListenAndServe(":4321", nil)
+	http.ListenAndServe(":4321", nil)*/
 }
