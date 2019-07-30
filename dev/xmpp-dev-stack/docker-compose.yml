@@ -1,0 +1,26 @@
+version: "3.7"
+services:
+  prosody:
+    build:
+      context: ./prosody
+    network_mode: host
+  recipient-a:
+    build:
+      context: ./recipient
+    network_mode: host
+    depends_on:
+      - prosody
+    restart: always
+    environment:
+      - XMPP_ID=recipient-a@localhost
+      - XMPP_PASS=insecure
+  recipient-b:
+    build:
+      context: ./recipient
+    network_mode: host
+    depends_on:
+      - prosody
+    restart: always
+    environment:
+      - XMPP_ID=recipient-b@localhost
+      - XMPP_PASS=insecure
