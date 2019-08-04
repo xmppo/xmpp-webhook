@@ -8,7 +8,6 @@ import (
 	"mellium.im/xmpp/dial"
 	mjid "mellium.im/xmpp/jid"
 	"mellium.im/xmpp/stanza"
-	"net"
 	"os"
 )
 
@@ -19,17 +18,10 @@ func panicOnErr(err error) {
 }
 
 func initXMPP(jid mjid.JID, pass string) (*xmpp.Session, error) {
-	dialer := dial.Dialer{}
+	dialer := dial.Dialer{NoTLS: true}
 	conn, err := dialer.Dial(context.TODO(), "tcp", jid)
-	switch err.(type) {
-	default:
+	if err != nil {
 		return nil, err
-	case *net.DNSError:
-		dialer = dial.Dialer{NoLookup: true, NoTLS: true}
-		conn, err = dialer.Dial(context.TODO(), "tcp", jid)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return xmpp.NegotiateSession(
 		context.TODO(),
@@ -69,7 +61,7 @@ func main() {
 
 	defer closeXMPP(session)
 
-    panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(mjid.JID{}, stanza.AvailablePresence, nil)))
+	panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(mjid.JID{}, stanza.AvailablePresence, nil)))
 
 	panicOnErr(session.Serve(nil))
 
