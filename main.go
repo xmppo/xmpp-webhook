@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/xml"
+	"fmt"
+	"io"
 	"log"
 	"mellium.im/sasl"
+	"mellium.im/xmlstream"
 	"mellium.im/xmpp"
 	"mellium.im/xmpp/dial"
 	mjid "mellium.im/xmpp/jid"
@@ -17,8 +21,13 @@ func panicOnErr(err error) {
 	}
 }
 
-func initXMPP(jid mjid.JID, pass string) (*xmpp.Session, error) {
-	dialer := dial.Dialer{NoTLS: true}
+type MessageBody struct {
+	stanza.Message
+	Body string `xml:"body"`
+}
+
+func initXMPP(jid mjid.JID, pass string, notls bool) (*xmpp.Session, error) {
+	dialer := dial.Dialer{NoTLS: notls}
 	conn, err := dialer.Dial(context.TODO(), "tcp", jid)
 	if err != nil {
 		return nil, err
@@ -43,10 +52,11 @@ func closeXMPP(session *xmpp.Session) {
 }
 
 func main() {
-	// get xmpp credentials and message receivers from env
+	// get xmpp credentials, message receivers and tls settings from env
 	xi := os.Getenv("XMPP_ID")
 	xp := os.Getenv("XMPP_PASS")
 	xr := os.Getenv("XMPP_RECEIVERS")
+	_, notls := os.LookupEnv("XMPP_NO_TLS")
 
 	// check if xmpp credentials and receiver list are supplied
 	if len(xi) < 1 || len(xp) < 1 || len(xr) < 1 {
@@ -56,14 +66,43 @@ func main() {
 	jid, err := mjid.Parse(xi)
 	panicOnErr(err)
 
-	session, err := initXMPP(jid, xp)
+	session, err := initXMPP(jid, xp, notls)
 	panicOnErr(err)
-
 	defer closeXMPP(session)
 
 	panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(mjid.JID{}, stanza.AvailablePresence, nil)))
 
-	panicOnErr(session.Serve(nil))
+	err = session.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
+		d := xml.NewTokenDecoder(t)
+		if start.Name.Local != "message" {
+			return nil
+		}
+
+		msg := MessageBody{}
+		err = d.DecodeElement(&msg, start)
+		if err != nil && err != io.EOF {
+			return nil
+		}
+
+		if msg.Body == "" || msg.Type != stanza.ChatMessage {
+			return nil
+		}
+
+		reply := MessageBody{
+			Message: stanza.Message{
+				To: msg.From.Bare(),
+			},
+			Body: msg.Body,
+		}
+
+		err = t.Encode(reply)
+		if err != nil {
+			fmt.Printf("Error responding to message %q: %q", msg.ID, err)
+		}
+		return nil
+	}))
+
+	panicOnErr(err)
 
 	/*// create chan for messages (webhooks -> xmpp)
 	messages := make(chan string)
