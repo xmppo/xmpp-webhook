@@ -23,7 +23,7 @@ IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting t
 - Download and extract the latest tarball (GitHub release page)
 - Install the binary: `install -D -m 744 xmpp-webhook /usr/local/bin/xmpp-webhook`
 - Install the service: `install -D -m 644 xmpp-webhook.service /etc/systemd/system/xmpp-webhook.service`
-- Configure XMMP credentials in `/etc/xmpp-webhook.env`. e.g.:
+- Configure XMPP credentials in `/etc/xmpp-webhook.env`. e.g.:
 
 ```
 XMPP_ID='bot@example.com'
