@@ -17,6 +17,13 @@ curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
 ```
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
+## Run with Docker
+### Build it
+- Build image: `docker build -t xmpp-webhook .`
+- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook xmpp-webhook`
+### Use prebuilt image from Docker Hub
+- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook opthomasprime/xmpp-webhook:latest`
+
 ## Installation
 IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.
 
