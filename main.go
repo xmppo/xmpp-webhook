@@ -13,7 +13,9 @@ import (
 	"mellium.im/xmpp/dial"
 	"mellium.im/xmpp/jid"
 	"mellium.im/xmpp/stanza"
+	"net/http"
 	"os"
+	"strings"
 )
 
 func panicOnErr(err error) {
@@ -30,6 +32,7 @@ type MessageBody struct {
 func initXMPP(address jid.JID, pass string, skipTLSVerify bool, legacyTLS bool, forceStartTLS bool) (*xmpp.Session, error) {
 	tlsConfig := tls.Config{InsecureSkipVerify: skipTLSVerify}
 	var dialer dial.Dialer
+	// only use the tls config for the dialer if necessary
 	if skipTLSVerify {
 		dialer = dial.Dialer{NoTLS: !legacyTLS, TLSConfig: &tlsConfig}
 	} else {
@@ -39,6 +42,7 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, legacyTLS bool, 
 	if err != nil {
 		return nil, err
 	}
+	// we need the domain in the tls config if we want to verify the cert
 	if !skipTLSVerify {
 		tlsConfig.ServerName = address.Domainpart()
 	}
@@ -81,60 +85,62 @@ func main() {
 	panicOnErr(err)
 
 	// connect to xmpp server
-	session, err := initXMPP(address, xp, skipTLSVerify, legacyTLS, forceStartTLS)
+	xmppSession, err := initXMPP(address, xp, skipTLSVerify, legacyTLS, forceStartTLS)
 	panicOnErr(err)
-	defer closeXMPP(session)
+	defer closeXMPP(xmppSession)
 
 	// send initial presence
-	panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(jid.JID{}, stanza.AvailablePresence, nil)))
+	panicOnErr(xmppSession.Send(context.TODO(), stanza.WrapPresence(jid.JID{}, stanza.AvailablePresence, nil)))
 
-	err = session.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
-		d := xml.NewTokenDecoder(t)
-		if start.Name.Local != "message" {
+	// listen for messages and echo them
+	go func() {
+		err = xmppSession.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
+			d := xml.NewTokenDecoder(t)
+			// ignore elements that aren't messages
+			if start.Name.Local != "message" {
+				return nil
+			}
+
+			// parse message into struct
+			msg := MessageBody{}
+			err = d.DecodeElement(&msg, start)
+			if err != nil && err != io.EOF {
+				return nil
+			}
+
+			// ignore empty messages and stanzas that aren't messages
+			if msg.Body == "" || msg.Type != stanza.ChatMessage {
+				return nil
+			}
+
+			// create reply with identical contents
+			reply := MessageBody{
+				Message: stanza.Message{
+					To: msg.From.Bare(),
+				},
+				Body: msg.Body,
+			}
+
+			// try to send reply, ignore errors
+			_ = t.Encode(reply)
 			return nil
-		}
+		}))
+		panicOnErr(err)
+	}()
 
-		msg := MessageBody{}
-		err = d.DecodeElement(&msg, start)
-		if err != nil && err != io.EOF {
-			return nil
-		}
-
-		if msg.Body == "" || msg.Type != stanza.ChatMessage {
-			return nil
-		}
-
-		reply := MessageBody{
-			Message: stanza.Message{
-				To: msg.From.Bare(),
-			},
-			Body: msg.Body,
-		}
-
-		err = t.Encode(reply)
-		if err != nil {
-			fmt.Printf("Error responding to message %q: %q", msg.ID, err)
-		}
-		return nil
-	}))
-
-	panicOnErr(err)
-
-	/*// create chan for messages (webhooks -> xmpp)
+	// create chan for messages (webhooks -> xmpp)
 	messages := make(chan string)
 
 	// wait for messages from the webhooks and send them to all receivers
 	go func() {
 		for m := range messages {
 			for _, r := range strings.Split(xr, ",") {
-				xc.Out <- xmpp.Message{
-					To: r,
-					Body: []xmpp.MessageBody{
-						{
-							Value: m,
-						},
-					},
-				}
+				recipient, err := jid.Parse(r)
+				panicOnErr(err)
+				fmt.Println(m)
+				fmt.Println(recipient)
+				// try to send message, ignore errors
+				//_ = xmppSession.Send(context.TODO(), stanza.WrapMessage(recipient, stanza.NormalMessage))
 			}
 		}
 	}()
@@ -143,5 +149,5 @@ func main() {
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
 
 	// listen for requests
-	http.ListenAndServe(":4321", nil)*/
+	http.ListenAndServe(":4321", nil)
 }
