@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -10,7 +11,7 @@ import (
 	"mellium.im/xmlstream"
 	"mellium.im/xmpp"
 	"mellium.im/xmpp/dial"
-	mjid "mellium.im/xmpp/jid"
+	"mellium.im/xmpp/jid"
 	"mellium.im/xmpp/stanza"
 	"os"
 )
@@ -26,21 +27,30 @@ type MessageBody struct {
 	Body string `xml:"body"`
 }
 
-func initXMPP(jid mjid.JID, pass string, notls bool) (*xmpp.Session, error) {
-	dialer := dial.Dialer{NoTLS: notls}
-	conn, err := dialer.Dial(context.TODO(), "tcp", jid)
+func initXMPP(address jid.JID, pass string, skipTLSVerify bool, legacyTLS bool, forceStartTLS bool) (*xmpp.Session, error) {
+	tlsConfig := tls.Config{InsecureSkipVerify: skipTLSVerify}
+	var dialer dial.Dialer
+	if skipTLSVerify {
+		dialer = dial.Dialer{NoTLS: !legacyTLS, TLSConfig: &tlsConfig}
+	} else {
+		dialer = dial.Dialer{NoTLS: !legacyTLS}
+	}
+	conn, err := dialer.Dial(context.TODO(), "tcp", address)
 	if err != nil {
 		return nil, err
 	}
+	if !skipTLSVerify {
+		tlsConfig.ServerName = address.Domainpart()
+	}
 	return xmpp.NegotiateSession(
 		context.TODO(),
-		jid.Domain(),
-		jid,
+		address.Domain(),
+		address,
 		conn,
 		false,
 		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
 			xmpp.BindResource(),
-			xmpp.StartTLS(true, nil),
+			xmpp.StartTLS(forceStartTLS, &tlsConfig),
 			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
 		}}),
 	)
@@ -52,25 +62,31 @@ func closeXMPP(session *xmpp.Session) {
 }
 
 func main() {
-	// get xmpp credentials, message receivers and tls settings from env
+	// get xmpp credentials, message receivers
 	xi := os.Getenv("XMPP_ID")
 	xp := os.Getenv("XMPP_PASS")
 	xr := os.Getenv("XMPP_RECEIVERS")
-	_, notls := os.LookupEnv("XMPP_NO_TLS")
+
+	// get tls settings from env
+	_, skipTLSVerify := os.LookupEnv("XMPP_SKIP_VERIFY")
+	_, legacyTLS := os.LookupEnv("XMPP_OVER_TLS")
+	_, forceStartTLS := os.LookupEnv("XMPP_FORCE_STARTTLS")
 
 	// check if xmpp credentials and receiver list are supplied
-	if len(xi) < 1 || len(xp) < 1 || len(xr) < 1 {
+	if xi == "" || xp == "1" || xr == "" {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
 	}
 
-	jid, err := mjid.Parse(xi)
+	address, err := jid.Parse(xi)
 	panicOnErr(err)
 
-	session, err := initXMPP(jid, xp, notls)
+	// connect to xmpp server
+	session, err := initXMPP(address, xp, skipTLSVerify, legacyTLS, forceStartTLS)
 	panicOnErr(err)
 	defer closeXMPP(session)
 
-	panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(mjid.JID{}, stanza.AvailablePresence, nil)))
+	// send initial presence
+	panicOnErr(session.Send(context.TODO(), stanza.WrapPresence(jid.JID{}, stanza.AvailablePresence, nil)))
 
 	err = session.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
 		d := xml.NewTokenDecoder(t)
