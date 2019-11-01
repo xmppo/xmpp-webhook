@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"log"
 	"mellium.im/sasl"
@@ -77,7 +76,7 @@ func main() {
 	_, forceStartTLS := os.LookupEnv("XMPP_FORCE_STARTTLS")
 
 	// check if xmpp credentials and receiver list are supplied
-	if xi == "" || xp == "1" || xr == "" {
+	if xi == "" || xp == "" || xr == "" {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
 	}
 
@@ -137,10 +136,13 @@ func main() {
 			for _, r := range strings.Split(xr, ",") {
 				recipient, err := jid.Parse(r)
 				panicOnErr(err)
-				fmt.Println(m)
-				fmt.Println(recipient)
 				// try to send message, ignore errors
-				//_ = xmppSession.Send(context.TODO(), stanza.WrapMessage(recipient, stanza.NormalMessage))
+				_ = xmppSession.Encode(MessageBody{
+					Message: stanza.Message{
+						To: recipient,
+					},
+					Body: m,
+				})
 			}
 		}
 	}()
