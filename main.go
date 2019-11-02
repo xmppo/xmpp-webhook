@@ -28,14 +28,14 @@ type MessageBody struct {
 	Body string `xml:"body"`
 }
 
-func initXMPP(address jid.JID, pass string, skipTLSVerify bool, legacyTLS bool, forceStartTLS bool) (*xmpp.Session, error) {
+func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (*xmpp.Session, error) {
 	tlsConfig := tls.Config{InsecureSkipVerify: skipTLSVerify}
 	var dialer dial.Dialer
 	// only use the tls config for the dialer if necessary
 	if skipTLSVerify {
-		dialer = dial.Dialer{NoTLS: !legacyTLS, TLSConfig: &tlsConfig}
+		dialer = dial.Dialer{NoTLS: !useXMPPS, TLSConfig: &tlsConfig}
 	} else {
-		dialer = dial.Dialer{NoTLS: !legacyTLS}
+		dialer = dial.Dialer{NoTLS: !useXMPPS}
 	}
 	conn, err := dialer.Dial(context.TODO(), "tcp", address)
 	if err != nil {
@@ -53,7 +53,7 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, legacyTLS bool, 
 		false,
 		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
 			xmpp.BindResource(),
-			xmpp.StartTLS(forceStartTLS, &tlsConfig),
+			xmpp.StartTLS(false, &tlsConfig),
 			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
 		}}),
 	)
@@ -72,8 +72,7 @@ func main() {
 
 	// get tls settings from env
 	_, skipTLSVerify := os.LookupEnv("XMPP_SKIP_VERIFY")
-	_, legacyTLS := os.LookupEnv("XMPP_OVER_TLS")
-	_, forceStartTLS := os.LookupEnv("XMPP_FORCE_STARTTLS")
+	_, useXMPPS := os.LookupEnv("XMPP_OVER_TLS")
 
 	// check if xmpp credentials and receiver list are supplied
 	if xi == "" || xp == "" || xr == "" {
@@ -84,7 +83,7 @@ func main() {
 	panicOnErr(err)
 
 	// connect to xmpp server
-	xmppSession, err := initXMPP(address, xp, skipTLSVerify, legacyTLS, forceStartTLS)
+	xmppSession, err := initXMPP(address, xp, skipTLSVerify, useXMPPS)
 	panicOnErr(err)
 	defer closeXMPP(xmppSession)
 
