@@ -1,78 +1,129 @@
 package main
 
 import (
+	"context"
+	"crypto/tls"
+	"encoding/xml"
+	"io"
 	"log"
+	"mellium.im/sasl"
+	"mellium.im/xmlstream"
+	"mellium.im/xmpp"
+	"mellium.im/xmpp/dial"
+	"mellium.im/xmpp/jid"
+	"mellium.im/xmpp/stanza"
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/emgee/go-xmpp/src/xmpp"
 )
 
-// starts xmpp session and returns the xmpp client
-func xmppLogin(id string, pass string) (*xmpp.XMPP, error) {
-	// parse jid structure
-	jid, err := xmpp.ParseJID(id)
+func panicOnErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+type MessageBody struct {
+	stanza.Message
+	Body string `xml:"body"`
+}
+
+func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (*xmpp.Session, error) {
+	tlsConfig := tls.Config{InsecureSkipVerify: skipTLSVerify}
+	var dialer dial.Dialer
+	// only use the tls config for the dialer if necessary
+	if skipTLSVerify {
+		dialer = dial.Dialer{NoTLS: !useXMPPS, TLSConfig: &tlsConfig}
+	} else {
+		dialer = dial.Dialer{NoTLS: !useXMPPS}
+	}
+	conn, err := dialer.Dial(context.TODO(), "tcp", address)
 	if err != nil {
 		return nil, err
 	}
-
-	// extract/generate address:port from jid
-	addr, err := xmpp.HomeServerAddrs(jid)
-	if err != nil {
-		return nil, err
+	// we need the domain in the tls config if we want to verify the cert
+	if !skipTLSVerify {
+		tlsConfig.ServerName = address.Domainpart()
 	}
+	return xmpp.NegotiateSession(
+		context.TODO(),
+		address.Domain(),
+		address,
+		conn,
+		false,
+		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
+			xmpp.BindResource(),
+			xmpp.StartTLS(false, &tlsConfig),
+			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+		}}),
+	)
+}
 
-	// create xml stream to address
-	stream, err := xmpp.NewStream(addr[0], nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// create client (login)
-	client, err := xmpp.NewClientXMPP(stream, jid, pass, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+func closeXMPP(session *xmpp.Session) {
+	session.Close()
+	session.Conn().Close()
 }
 
 func main() {
-	// get xmpp credentials and message receivers from env
+	// get xmpp credentials, message receivers
 	xi := os.Getenv("XMPP_ID")
 	xp := os.Getenv("XMPP_PASS")
 	xr := os.Getenv("XMPP_RECEIVERS")
 
+	// get tls settings from env
+	_, skipTLSVerify := os.LookupEnv("XMPP_SKIP_VERIFY")
+	_, useXMPPS := os.LookupEnv("XMPP_OVER_TLS")
+
 	// check if xmpp credentials and receiver list are supplied
-	if len(xi) < 1 || len(xp) < 1 || len(xr) < 1 {
+	if xi == "" || xp == "" || xr == "" {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
 	}
 
+	address, err := jid.Parse(xi)
+	panicOnErr(err)
+
 	// connect to xmpp server
-	xc, err := xmppLogin(xi, xp)
-	if err != nil {
-		log.Fatal(err)
-	}
+	xmppSession, err := initXMPP(address, xp, skipTLSVerify, useXMPPS)
+	panicOnErr(err)
+	defer closeXMPP(xmppSession)
 
-	// announce initial presence
-	xc.Out <- xmpp.Presence{}
+	// send initial presence
+	panicOnErr(xmppSession.Send(context.TODO(), stanza.WrapPresence(jid.JID{}, stanza.AvailablePresence, nil)))
 
-	// listen for incoming xmpp stanzas
+	// listen for messages and echo them
 	go func() {
-		for stanza := range xc.In {
-			// check if stanza is a message
-			m, ok := stanza.(*xmpp.Message)
-			if ok && len(m.Body) > 0 {
-				// echo the message
-				xc.Out <- xmpp.Message{
-					To:   m.From,
-					Body: m.Body,
-				}
+		err = xmppSession.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
+			d := xml.NewTokenDecoder(t)
+			// ignore elements that aren't messages
+			if start.Name.Local != "message" {
+				return nil
 			}
-		}
-		// xc.In is closed when the server closes the stream
-		log.Fatal("connection lost")
+
+			// parse message into struct
+			msg := MessageBody{}
+			err = d.DecodeElement(&msg, start)
+			if err != nil && err != io.EOF {
+				return nil
+			}
+
+			// ignore empty messages and stanzas that aren't messages
+			if msg.Body == "" || msg.Type != stanza.ChatMessage {
+				return nil
+			}
+
+			// create reply with identical contents
+			reply := MessageBody{
+				Message: stanza.Message{
+					To: msg.From.Bare(),
+				},
+				Body: msg.Body,
+			}
+
+			// try to send reply, ignore errors
+			_ = t.Encode(reply)
+			return nil
+		}))
+		panicOnErr(err)
 	}()
 
 	// create chan for messages (webhooks -> xmpp)
@@ -82,14 +133,15 @@ func main() {
 	go func() {
 		for m := range messages {
 			for _, r := range strings.Split(xr, ",") {
-				xc.Out <- xmpp.Message{
-					To: r,
-					Body: []xmpp.MessageBody{
-						{
-							Value: m,
-						},
+				recipient, err := jid.Parse(r)
+				panicOnErr(err)
+				// try to send message, ignore errors
+				_ = xmppSession.Encode(MessageBody{
+					Message: stanza.Message{
+						To: recipient,
 					},
-				}
+					Body: m,
+				})
 			}
 		}
 	}()
