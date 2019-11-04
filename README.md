@@ -10,6 +10,8 @@
     - `XMPP_ID` - The JID we want to use
     - `XMPP_PASS` - The password
     - `XMPP_RECEIVERS` - Comma-seperated list of JID's
+    - `XMPP_SKIP_VERIFY` - Skip TLS verification (Optional)
+    - `XMPP_OVER_TLS` - Use deicated TLS port (Optional)
 - After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
 
 ```
