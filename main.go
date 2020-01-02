@@ -148,6 +148,7 @@ func main() {
 
 	// initialize handler for grafana alerts
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
+	http.Handle("/slack", newMessageHandler(messages, slackParserFunc))
 
 	// listen for requests
 	http.ListenAndServe(":4321", nil)

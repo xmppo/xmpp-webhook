@@ -69,3 +69,62 @@ func grafanaParserFunc(r *http.Request) (string, error) {
 
 	return message, nil
 }
+
+/*************
+SLACK PARSER
+*************/
+type SlackMessage struct {
+   Channel     string            `json:"channel"`
+   IconEmoji   string            `json:"icon_emoji"`
+   Username    string            `json:"username"`
+   Text        string            `json:"text"`
+   Attachments []SlackAttachment `json:"attachments"`
+}
+
+type SlackAttachment struct {
+   Color       string            `json:"color"`
+   Title       string            `json:"title"`
+   TitleLink   string            `json:"title_link"`
+   Text        string            `json:"text"`
+}
+
+func nonemptyAppendNewline(message string) (string) {
+   if len(message) == 0 {
+      return message
+   }
+
+   return message+"\n"
+}
+
+func slackParserFunc(r *http.Request) (string, error) {
+	// get alert data from request
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// grafana alert struct
+	alert := SlackMessage{}
+
+	// parse body into the alert struct
+	err = json.Unmarshal(body, &alert)
+	if err != nil {
+		return "", err
+	}
+
+	// contruct alert message
+   message := ""
+   hasText := (alert.Text != "")
+   if hasText {
+      message = alert.Text
+   }
+
+   for _, attachment := range alert.Attachments {
+      message = nonemptyAppendNewline(message)
+      message = message + attachment.Title+": "+attachment.TitleLink+"\n"
+      message = message + attachment.Text
+   }
+
+
+	return message, nil
+}
