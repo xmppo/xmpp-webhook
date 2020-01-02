@@ -115,6 +115,7 @@ func main() {
 			reply := MessageBody{
 				Message: stanza.Message{
 					To: msg.From.Bare(),
+					From: address,
 				},
 				Body: msg.Body,
 			}
@@ -139,6 +140,7 @@ func main() {
 				_ = xmppSession.Encode(MessageBody{
 					Message: stanza.Message{
 						To: recipient,
+						From: address,
 					},
 					Body: m,
 				})
