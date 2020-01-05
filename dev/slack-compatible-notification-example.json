@@ -1,0 +1,13 @@
+{
+  "channel": "#channel",
+  "icon_emoji": ":heart:",
+  "username": "Flux Deployer",
+  "attachments": [
+    {
+      "color": "#4286f4",
+      "title": "Applied flux changes to cluster",
+      "title_link": "https://GITURL/USERNAME/kubernetes/commit/COMMITSHA",
+      "text": "Event: Sync: 0f34755, jabber:deployment/test\nCommits:\n\n* \u003chttps://GITURL/USERNAME/kubernetes/commit/COMMITSHA\u003e: change test to test webhook\n\nResources updated:\n\n* jabber:deployment/test"
+    }
+  ]
+}

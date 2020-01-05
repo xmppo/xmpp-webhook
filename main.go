@@ -115,6 +115,7 @@ func main() {
 			reply := MessageBody{
 				Message: stanza.Message{
 					To:   msg.From.Bare(),
+					From: address,
 					Type: stanza.ChatMessage,
 				},
 				Body: msg.Body,
@@ -140,6 +141,7 @@ func main() {
 				_ = xmppSession.Encode(MessageBody{
 					Message: stanza.Message{
 						To:   recipient,
+						From: address,
 						Type: stanza.ChatMessage,
 					},
 					Body: m,
@@ -150,6 +152,7 @@ func main() {
 
 	// initialize handler for grafana alerts
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
+	http.Handle("/slack", newMessageHandler(messages, slackParserFunc))
 
 	// listen for requests
 	_ = http.ListenAndServe(":4321", nil)
