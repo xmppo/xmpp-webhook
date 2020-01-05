@@ -54,14 +54,14 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (
 		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
 			xmpp.BindResource(),
 			xmpp.StartTLS(false, &tlsConfig),
-			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+			xmpp.SASL("", pass, sasl.ScramSha256Plus, sasl.ScramSha256, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
 		}}),
 	)
 }
 
 func closeXMPP(session *xmpp.Session) {
-	session.Close()
-	session.Conn().Close()
+	_ = session.Close()
+	_ = session.Conn().Close()
 }
 
 func main() {
@@ -116,6 +116,7 @@ func main() {
 				Message: stanza.Message{
 					To:   msg.From.Bare(),
 					From: address,
+					Type: stanza.ChatMessage,
 				},
 				Body: msg.Body,
 			}
@@ -141,6 +142,7 @@ func main() {
 					Message: stanza.Message{
 						To:   recipient,
 						From: address,
+						Type: stanza.ChatMessage,
 					},
 					Body: m,
 				})
@@ -153,5 +155,5 @@ func main() {
 	http.Handle("/slack", newMessageHandler(messages, slackParserFunc))
 
 	// listen for requests
-	http.ListenAndServe(":4321", nil)
+	_ = http.ListenAndServe(":4321", nil)
 }
