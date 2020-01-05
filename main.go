@@ -54,7 +54,7 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (
 		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
 			xmpp.BindResource(),
 			xmpp.StartTLS(false, &tlsConfig),
-			xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+			xmpp.SASL("", pass, sasl.ScramSha256Plus, sasl.ScramSha256, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
 		}}),
 	)
 }
