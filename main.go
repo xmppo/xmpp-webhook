@@ -60,8 +60,8 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (
 }
 
 func closeXMPP(session *xmpp.Session) {
-	session.Close()
-	session.Conn().Close()
+	_ = session.Close()
+	_ = session.Conn().Close()
 }
 
 func main() {
@@ -150,5 +150,5 @@ func main() {
 	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
 
 	// listen for requests
-	http.ListenAndServe(":4321", nil)
+	_ = http.ListenAndServe(":4321", nil)
 }
