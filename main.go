@@ -114,7 +114,7 @@ func main() {
 			// create reply with identical contents
 			reply := MessageBody{
 				Message: stanza.Message{
-					To: msg.From.Bare(),
+					To:   msg.From.Bare(),
 					From: address,
 				},
 				Body: msg.Body,
@@ -139,7 +139,7 @@ func main() {
 				// try to send message, ignore errors
 				_ = xmppSession.Encode(MessageBody{
 					Message: stanza.Message{
-						To: recipient,
+						To:   recipient,
 						From: address,
 					},
 					Body: m,

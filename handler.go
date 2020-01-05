@@ -7,12 +7,12 @@ import (
 )
 
 type Response struct {
-   Message string
-   Code    int
+	Message string
+	Code    int
 }
 
-func errorResponse() (Response) {
-   return Response{"", http.StatusInternalServerError}
+func errorResponse() Response {
+	return Response{"", http.StatusInternalServerError}
 }
 
 // interface for parser functions (grafana, prometheus, ...)
@@ -33,7 +33,7 @@ func (h *messageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// send message to xmpp client
 	h.messages <- m
 	w.WriteHeader(response.Code)
-   w.Write( []byte(response.Message) )
+	w.Write([]byte(response.Message))
 }
 
 // returns new handler with a given parser function
@@ -84,26 +84,26 @@ func grafanaParserFunc(r *http.Request) (string, error, Response) {
 SLACK PARSER
 *************/
 type SlackMessage struct {
-   Channel     string            `json:"channel"`
-   IconEmoji   string            `json:"icon_emoji"`
-   Username    string            `json:"username"`
-   Text        string            `json:"text"`
-   Attachments []SlackAttachment `json:"attachments"`
+	Channel     string            `json:"channel"`
+	IconEmoji   string            `json:"icon_emoji"`
+	Username    string            `json:"username"`
+	Text        string            `json:"text"`
+	Attachments []SlackAttachment `json:"attachments"`
 }
 
 type SlackAttachment struct {
-   Color       string            `json:"color"`
-   Title       string            `json:"title"`
-   TitleLink   string            `json:"title_link"`
-   Text        string            `json:"text"`
+	Color     string `json:"color"`
+	Title     string `json:"title"`
+	TitleLink string `json:"title_link"`
+	Text      string `json:"text"`
 }
 
-func nonemptyAppendNewline(message string) (string) {
-   if len(message) == 0 {
-      return message
-   }
+func nonemptyAppendNewline(message string) string {
+	if len(message) == 0 {
+		return message
+	}
 
-   return message+"\n"
+	return message + "\n"
 }
 
 func slackParserFunc(r *http.Request) (string, error, Response) {
@@ -123,19 +123,18 @@ func slackParserFunc(r *http.Request) (string, error, Response) {
 	}
 
 	// contruct alert message
-   message := ""
-   hasText := (alert.Text != "")
-   if hasText {
-      message = alert.Text
-   }
+	message := ""
+	hasText := (alert.Text != "")
+	if hasText {
+		message = alert.Text
+	}
 
-   for _, attachment := range alert.Attachments {
-      message = nonemptyAppendNewline(message)
-      message += attachment.Title+"\n"
-      message += attachment.TitleLink+"\n\n"
-      message += attachment.Text
-   }
-
+	for _, attachment := range alert.Attachments {
+		message = nonemptyAppendNewline(message)
+		message += attachment.Title + "\n"
+		message += attachment.TitleLink + "\n\n"
+		message += attachment.Text
+	}
 
 	return message, nil, Response{"ok", http.StatusOK}
 }
