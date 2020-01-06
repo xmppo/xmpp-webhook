@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
+	"github.com/opthomas-prime/xmpp-webhook/parser"
 	"io"
 	"log"
 	"mellium.im/sasl"
@@ -79,11 +80,11 @@ func main() {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
 	}
 
-	address, err := jid.Parse(xi)
+	myjid, err := jid.Parse(xi)
 	panicOnErr(err)
 
 	// connect to xmpp server
-	xmppSession, err := initXMPP(address, xp, skipTLSVerify, useXMPPS)
+	xmppSession, err := initXMPP(myjid, xp, skipTLSVerify, useXMPPS)
 	panicOnErr(err)
 	defer closeXMPP(xmppSession)
 
@@ -115,7 +116,7 @@ func main() {
 			reply := MessageBody{
 				Message: stanza.Message{
 					To:   msg.From.Bare(),
-					From: address,
+					From: myjid,
 					Type: stanza.ChatMessage,
 				},
 				Body: msg.Body,
@@ -141,7 +142,7 @@ func main() {
 				_ = xmppSession.Encode(MessageBody{
 					Message: stanza.Message{
 						To:   recipient,
-						From: address,
+						From: myjid,
 						Type: stanza.ChatMessage,
 					},
 					Body: m,
@@ -150,9 +151,9 @@ func main() {
 		}
 	}()
 
-	// initialize handler for grafana alerts
-	http.Handle("/grafana", newMessageHandler(messages, grafanaParserFunc))
-	http.Handle("/slack", newMessageHandler(messages, slackParserFunc))
+	// initialize handlers with accociated parser functions
+	http.Handle("/grafana", newMessageHandler(messages, parser.GrafanaParserFunc))
+	http.Handle("/slack", newMessageHandler(messages, parser.SlackParserFunc))
 
 	// listen for requests
 	_ = http.ListenAndServe(":4321", nil)
