@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 )
 
-// interface for parser functions (grafana, prometheus, ...)
+// interface for parser functions
 type parserFunc func(*http.Request) (string, error)
 
 type messageHandler struct {
@@ -20,10 +18,13 @@ func (h *messageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m, err := h.parserFunc(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+	} else {
+		// send message to xmpp client
+		h.messages <- m
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
 	}
-	// send message to xmpp client
-	h.messages <- m
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // returns new handler with a given parser function
@@ -32,40 +33,4 @@ func newMessageHandler(m chan<- string, f parserFunc) *messageHandler {
 		messages:   m,
 		parserFunc: f,
 	}
-}
-
-/*************
-GRAFANA PARSER
-*************/
-func grafanaParserFunc(r *http.Request) (string, error) {
-	// get alert data from request
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return "", err
-	}
-
-	// grafana alert struct
-	alert := &struct {
-		Title   string `json:"title"`
-		RuleURL string `json:"ruleUrl"`
-		State   string `json:"state"`
-		Message string `json:"message"`
-	}{}
-
-	// parse body into the alert struct
-	err = json.Unmarshal(body, &alert)
-	if err != nil {
-		return "", err
-	}
-
-	// contruct alert message
-	var message string
-	switch alert.State {
-	case "ok":
-		message = ":) " + alert.Title
-	default:
-		message = ":( " + alert.Title + "\n" + alert.Message + "\n" + alert.RuleURL
-	}
-
-	return message, nil
 }

@@ -1,9 +1,14 @@
 # xmpp-webhook
-- Multipurpose XMPP-Webhook (Built for Prometheus/Grafana Alerts)
-- Based on https://github.com/atomatt/go-xmpp
+- Multipurpose XMPP-Webhook (Built for DevOps Alerts)
+- Based on https://github.com/mellium/xmpp
 
 ## Status
-`xmpp-webhook` ~~currently~~ only provides a hook for Grafana. ~~I will implement a `parserFunc` for Prometheus ASAP~~. Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/handler.go to learn how to support more source services.
+`xmpp-webhook` currently support:
+
+- Grafana Webhook alerts
+- Slack Incoming Webhooks (Feedback appreciated)
+
+Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/parser/ to learn how to support more source services.
 
 ## Usage
 - `xmpp-webhook` is configured via environment variables:
@@ -16,6 +21,7 @@
 
 ```
 curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
+curl -X POST -d @slack-compatible-notification-example.json localhost:4321/slack
 ```
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
@@ -27,7 +33,9 @@ curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
 - Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook opthomasprime/xmpp-webhook:latest`
 
 ## Installation
-IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.
+~~IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.~~.
+
+-> https://github.com/mellium/xmpp automatically reconnects after a failure.
 
 - Download and extract the latest tarball (GitHub release page)
 - Install the binary: `install -D -m 744 xmpp-webhook /usr/local/bin/xmpp-webhook`
