@@ -8,7 +8,7 @@
 - Grafana Webhook alerts
 - Slack Incoming Webhooks (Feedback appreciated)
 
-Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/parser/ to learn how to support more source services.
+Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to support more source services.
 
 ## Usage
 - `xmpp-webhook` is configured via environment variables:
@@ -30,7 +30,7 @@ curl -X POST -d @slack-compatible-notification-example.json localhost:4321/slack
 - Build image: `docker build -t xmpp-webhook .`
 - Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook xmpp-webhook`
 ### Use prebuilt image from Docker Hub
-- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook opthomasprime/xmpp-webhook:latest`
+- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook tmsmr/xmpp-webhook:latest`
 
 ## Installation
 ~~IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.~~.

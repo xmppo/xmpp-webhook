@@ -1,4 +1,4 @@
-module github.com/opthomas-prime/xmpp-webhook/dev/xmpp-dev-stack/recipient
+module github.com/tmsmr/xmpp-webhook/dev/xmpp-dev-stack/recipient
 
 go 1.13
 

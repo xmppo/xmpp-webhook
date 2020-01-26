@@ -1,4 +1,4 @@
-module github.com/opthomas-prime/xmpp-webhook
+module github.com/tmsmr/xmpp-webhook
 
 require (
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf // indirect

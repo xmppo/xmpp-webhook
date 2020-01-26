@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
-	"github.com/opthomas-prime/xmpp-webhook/parser"
+	"github.com/tmsmr/xmpp-webhook/parser"
 	"io"
 	"log"
 	"mellium.im/sasl"
