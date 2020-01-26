@@ -21,6 +21,7 @@ Check https://github.com/opthomas-prime/xmpp-webhook/blob/master/parser/ to lear
 
 ```
 curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
+curl -X POST -d @slack-compatible-notification-example.json localhost:4321/slack
 ```
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
