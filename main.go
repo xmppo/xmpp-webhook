@@ -4,18 +4,19 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
-	"github.com/tmsmr/xmpp-webhook/parser"
 	"io"
 	"log"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/tmsmr/xmpp-webhook/parser"
 	"mellium.im/sasl"
 	"mellium.im/xmlstream"
 	"mellium.im/xmpp"
 	"mellium.im/xmpp/dial"
 	"mellium.im/xmpp/jid"
 	"mellium.im/xmpp/stanza"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func panicOnErr(err error) {
@@ -46,16 +47,21 @@ func initXMPP(address jid.JID, pass string, skipTLSVerify bool, useXMPPS bool) (
 	if !skipTLSVerify {
 		tlsConfig.ServerName = address.Domainpart()
 	}
-	return xmpp.NegotiateSession(
+	return xmpp.NewSession(
 		context.TODO(),
 		address.Domain(),
 		address,
 		conn,
-		false,
-		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
-			xmpp.BindResource(),
-			xmpp.StartTLS(false, &tlsConfig),
-			xmpp.SASL("", pass, sasl.ScramSha256Plus, sasl.ScramSha256, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+		0,
+		xmpp.NewNegotiator(xmpp.StreamConfig{Features: func(_ *xmpp.Session, f ...xmpp.StreamFeature) []xmpp.StreamFeature {
+			if f != nil {
+				return f
+			}
+			return []xmpp.StreamFeature{
+				xmpp.BindResource(),
+				xmpp.StartTLS(&tlsConfig),
+				xmpp.SASL("", pass, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+			}
 		}}),
 	)
 }
@@ -89,7 +95,7 @@ func main() {
 	defer closeXMPP(xmppSession)
 
 	// send initial presence
-	panicOnErr(xmppSession.Send(context.TODO(), stanza.WrapPresence(jid.JID{}, stanza.AvailablePresence, nil)))
+	panicOnErr(xmppSession.Send(context.TODO(), stanza.Presence{Type: stanza.AvailablePresence}.Wrap(nil)))
 
 	// listen for messages and echo them
 	go func() {
@@ -132,6 +138,9 @@ func main() {
 	// create chan for messages (webhooks -> xmpp)
 	messages := make(chan string)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// wait for messages from the webhooks and send them to all receivers
 	go func() {
 		for m := range messages {
@@ -139,7 +148,7 @@ func main() {
 				recipient, err := jid.Parse(r)
 				panicOnErr(err)
 				// try to send message, ignore errors
-				_ = xmppSession.Encode(MessageBody{
+				_ = xmppSession.Encode(ctx, MessageBody{
 					Message: stanza.Message{
 						To:   recipient,
 						From: myjid,
