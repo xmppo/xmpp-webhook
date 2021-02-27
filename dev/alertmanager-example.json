@@ -1,0 +1,30 @@
+{
+  "receiver": "xmpp-email",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "testalert",
+        "instance": "test.net",
+        "severity": "critical"
+      },
+      "annotations": { "summary": "Simple test" },
+      "startsAt": "2021-02-27T18:38:56Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://local-example-alert/testalert",
+      "fingerprint": "d4baf2738cfc5a30"
+    }
+  ],
+  "groupLabels": { "instance": "test.net", "severity": "critical" },
+  "commonLabels": {
+    "alertname": "testalert",
+    "instance": "test.net",
+    "severity": "critical"
+  },
+  "commonAnnotations": { "summary": "Simple test" },
+  "externalURL": "http://127.0.0.1:9093",
+  "version": "4",
+  "groupKey": "{}/{severity=\"critical\"}:{instance=\"test.net\", severity=\"critical\"}",
+  "truncatedAlerts": 0
+}
