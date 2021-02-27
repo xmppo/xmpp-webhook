@@ -17,6 +17,7 @@ Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to 
     - `XMPP_RECEIVERS` - Comma-seperated list of JID's
     - `XMPP_SKIP_VERIFY` - Skip TLS verification (Optional)
     - `XMPP_OVER_TLS` - Use dedicated TLS port (Optional)
+    - `XMPP_WEBHOOK_LISTEN_ADDRESS` - Bind address (Optional)
 - After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
 
 ```

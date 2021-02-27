@@ -75,6 +75,12 @@ func main() {
 	_, skipTLSVerify := os.LookupEnv("XMPP_SKIP_VERIFY")
 	_, useXMPPS := os.LookupEnv("XMPP_OVER_TLS")
 
+	// get listen address
+	listenAddress := os.Getenv("XMPP_WEBHOOK_LISTEN_ADDRESS")
+	if len(listenAddress) == 0 {
+		listenAddress = ":4321"
+	}
+
 	// check if xmpp credentials and receiver list are supplied
 	if xi == "" || xp == "" || xr == "" {
 		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
@@ -156,5 +162,5 @@ func main() {
 	http.Handle("/slack", newMessageHandler(messages, parser.SlackParserFunc))
 
 	// listen for requests
-	_ = http.ListenAndServe(":4321", nil)
+	_ = http.ListenAndServe(listenAddress, nil)
 }
