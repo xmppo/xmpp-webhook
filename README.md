@@ -15,7 +15,7 @@ Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to 
 - `xmpp-webhook` is configured via environment variables:
     - `XMPP_ID` - The JID we want to use
     - `XMPP_PASS` - The password
-    - `XMPP_RECIPIENTS` - Comma-seperated list of JID's
+    - `XMPP_RECIPIENTS` - Comma-separated list of JID's
     - `XMPP_SKIP_VERIFY` - Skip TLS verification (Optional)
     - `XMPP_OVER_TLS` - Use dedicated TLS port (Optional)
     - `XMPP_WEBHOOK_LISTEN_ADDRESS` - Bind address (Optional)
