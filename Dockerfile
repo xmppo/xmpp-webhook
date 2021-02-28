@@ -12,6 +12,6 @@ RUN adduser -D -g '' xmpp-webhook
 USER xmpp-webhook
 ENV XMPP_ID="" \
 	XMPP_PASS="" \
-	XMPP_RECEIVERS=""
+	XMPP_RECIPIENTS=""
 EXPOSE 4321
 CMD ["/xmpp-webhook"]

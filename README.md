@@ -15,7 +15,7 @@ Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to 
 - `xmpp-webhook` is configured via environment variables:
     - `XMPP_ID` - The JID we want to use
     - `XMPP_PASS` - The password
-    - `XMPP_RECEIVERS` - Comma-seperated list of JID's
+    - `XMPP_RECIPIENTS` - Comma-seperated list of JID's
     - `XMPP_SKIP_VERIFY` - Skip TLS verification (Optional)
     - `XMPP_OVER_TLS` - Use dedicated TLS port (Optional)
     - `XMPP_WEBHOOK_LISTEN_ADDRESS` - Bind address (Optional)
@@ -26,14 +26,14 @@ curl -X POST -d @dev/grafana-webhook-alert-example.json localhost:4321/grafana
 curl -X POST -d @dev/alertmanager-example.json localhost:4321/alertmanager
 curl -X POST -d @dev/slack-compatible-notification-example.json localhost:4321/slack
 ```
-- After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
+- After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured recipients.
 
 ## Run with Docker
 ### Build it
 - Build image: `docker build -t xmpp-webhook .`
-- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook xmpp-webhook`
+- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECIPIENTS=a@example.org,b@example.org" -p 4321:4321 -d --name xmpp-webhook xmpp-webhook`
 ### Use prebuilt image from Docker Hub
-- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook tmsmr/xmpp-webhook:latest`
+- Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECIPIENTS=a@example.org,b@example.org" -p 4321:4321 -d --name xmpp-webhook tmsmr/xmpp-webhook:latest`
 
 ## Installation
 - Download and extract the latest tarball (GitHub release page)
@@ -44,7 +44,7 @@ curl -X POST -d @dev/slack-compatible-notification-example.json localhost:4321/s
 ```
 XMPP_ID='bot@example.com'
 XMPP_PASS='passw0rd'
-XMPP_RECEIVERS='jdoe@example.com,ops@example.com'
+XMPP_RECIPIENTS='jdoe@example.com,ops@example.com'
 ```
 
 - Enable and start the service:

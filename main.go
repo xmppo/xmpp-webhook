@@ -72,10 +72,10 @@ func closeXMPP(session *xmpp.Session) {
 }
 
 func main() {
-	// get xmpp credentials, message receivers
+	// get xmpp credentials, message recipients
 	xi := os.Getenv("XMPP_ID")
 	xp := os.Getenv("XMPP_PASS")
-	xr := os.Getenv("XMPP_RECEIVERS")
+	xr := os.Getenv("XMPP_RECIPIENTS")
 
 	// get tls settings from env
 	_, skipTLSVerify := os.LookupEnv("XMPP_SKIP_VERIFY")
@@ -87,9 +87,9 @@ func main() {
 		listenAddress = ":4321"
 	}
 
-	// check if xmpp credentials and receiver list are supplied
+	// check if xmpp credentials and recipient list are supplied
 	if xi == "" || xp == "" || xr == "" {
-		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECEIVERS not set")
+		log.Fatal("XMPP_ID, XMPP_PASS or XMPP_RECIPIENTS not set")
 	}
 
 	myjid, err := jid.Parse(xi)
@@ -147,7 +147,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// wait for messages from the webhooks and send them to all receivers
+	// wait for messages from the webhooks and send them to all recipients
 	go func() {
 		for m := range messages {
 			for _, r := range strings.Split(xr, ",") {
