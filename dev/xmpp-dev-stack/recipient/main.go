@@ -44,23 +44,28 @@ func main() {
 
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
-	session, err := xmpp.NegotiateSession(
+	session, err := xmpp.NewSession(
 		context.TODO(),
 		address.Domain(),
 		address,
 		conn,
-		false,
-		xmpp.NewNegotiator(xmpp.StreamConfig{Features: []xmpp.StreamFeature{
-			xmpp.BindResource(),
-			xmpp.StartTLS(true, &tlsConfig),
-			xmpp.SASL("", xp, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+		0,
+		xmpp.NewNegotiator(xmpp.StreamConfig{Features: func(_ *xmpp.Session, f ...xmpp.StreamFeature) []xmpp.StreamFeature {
+			if f != nil {
+				return f
+			}
+			return []xmpp.StreamFeature{
+				xmpp.BindResource(),
+				xmpp.StartTLS(&tlsConfig),
+				xmpp.SASL("", xp, sasl.ScramSha256Plus, sasl.ScramSha256, sasl.ScramSha1Plus, sasl.ScramSha1, sasl.Plain),
+			}
 		}}),
 	)
 	panicOnErr(err)
 
 	fmt.Println("connected")
 
-	err = session.Send(context.TODO(), stanza.WrapPresence(address, stanza.AvailablePresence, nil))
+	err = session.Send(context.TODO(), stanza.Presence{Type: stanza.AvailablePresence}.Wrap(nil))
 	panicOnErr(err)
 
 	err = session.Serve(xmpp.HandlerFunc(func(t xmlstream.TokenReadEncoder, start *xml.StartElement) error {
