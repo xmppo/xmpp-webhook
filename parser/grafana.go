@@ -27,7 +27,7 @@ func GrafanaParserFunc(r *http.Request) (string, error) {
 		return "", errors.New(parseErr)
 	}
 
-	// contruct alert message
+	// construct alert message
 	var message string
 	switch alert.State {
 	case "ok":

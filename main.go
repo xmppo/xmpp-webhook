@@ -166,7 +166,7 @@ func main() {
 		}
 	}()
 
-	// initialize handlers with accociated parser functions
+	// initialize handlers with associated parser functions
 	http.Handle("/grafana", newMessageHandler(messages, parser.GrafanaParserFunc))
 	http.Handle("/slack", newMessageHandler(messages, parser.SlackParserFunc))
 	http.Handle("/alertmanager", newMessageHandler(messages, parser.AlertmanagerParserFunc))

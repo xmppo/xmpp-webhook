@@ -29,7 +29,7 @@ func SlackParserFunc(r *http.Request) (string, error) {
 		return "", errors.New(parseErr)
 	}
 
-	// contruct alert message
+	// construct alert message
 	message := alert.Text
 	for _, attachment := range alert.Attachments {
 		if len(message) > 0 {

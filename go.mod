@@ -9,4 +9,4 @@ require (
 	mellium.im/xmpp v0.18.0
 )
 
-go 1.13
+go 1.15

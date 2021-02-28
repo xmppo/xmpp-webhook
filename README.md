@@ -6,6 +6,7 @@
 `xmpp-webhook` currently support:
 
 - Grafana Webhook alerts
+- Alertmanager Webhooks
 - Slack Incoming Webhooks (Feedback appreciated)
 
 Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to support more source services.
@@ -18,11 +19,12 @@ Check https://github.com/tmsmr/xmpp-webhook/blob/master/parser/ to learn how to 
     - `XMPP_SKIP_VERIFY` - Skip TLS verification (Optional)
     - `XMPP_OVER_TLS` - Use dedicated TLS port (Optional)
     - `XMPP_WEBHOOK_LISTEN_ADDRESS` - Bind address (Optional)
-- After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints (on `:4321`). e.g.:
+- After startup, `xmpp-webhook` tries to connect to the XMPP server and provides the implemented HTTP enpoints. e.g.:
 
 ```
-curl -X POST -d @grafana-webhook-alert-example.json localhost:4321/grafana
-curl -X POST -d @slack-compatible-notification-example.json localhost:4321/slack
+curl -X POST -d @dev/grafana-webhook-alert-example.json localhost:4321/grafana
+curl -X POST -d @dev/alertmanager-example.json localhost:4321/alertmanager
+curl -X POST -d @dev/slack-compatible-notification-example.json localhost:4321/slack
 ```
 - After parsing the body in the appropriate `parserFunc`, the notification is then distributed to the configured receivers.
 
@@ -34,10 +36,6 @@ curl -X POST -d @slack-compatible-notification-example.json localhost:4321/slack
 - Run: `docker run -e "XMPP_ID=alerts@example.org" -e "XMPP_PASS=xxx" -e "XMPP_RECEIVERS=receiver1@example.org,receiver2@example.org" -p 4321:4321 -d --name xmpp-webhook tmsmr/xmpp-webhook:latest`
 
 ## Installation
-~~IMPORTANT NOTE: For the sake of simplicity, `xmpp-webhook` is not reconnecting to the XMPP server after a connection-loss. If you use the provided `xmpp-webhook.service` - Systemd will manage the reconnect by restarting the service.~~.
-
--> https://github.com/mellium/xmpp automatically reconnects after a failure.
-
 - Download and extract the latest tarball (GitHub release page)
 - Install the binary: `install -D -m 744 xmpp-webhook /usr/local/bin/xmpp-webhook`
 - Install the service: `install -D -m 644 xmpp-webhook.service /etc/systemd/system/xmpp-webhook.service`
@@ -62,6 +60,7 @@ systemctl start xmpp-webhook
 - Clone the sources
 - Change in the project folder:
 - Build `xmpp-webhook`: `go build`
+- `dev/xmpp-dev-stack` starts Prosody (With "auth_any" and "roster_allinall" enabled) and two XMPP-clients for easy testing
 
 ## Need help?
 Feel free to contact me!
