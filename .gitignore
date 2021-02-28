@@ -1,3 +1,5 @@
 .vscode
 .idea
 xmpp-webhook
+xmpp-webhook-*.tar.gz*
+
