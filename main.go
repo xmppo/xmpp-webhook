@@ -142,7 +142,7 @@ func main() {
 	}()
 
 	// create chan for messages (webhooks -> xmpp)
-	messages := make(chan string)
+	messages := make(chan alertMessage)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -150,9 +150,17 @@ func main() {
 	// wait for messages from the webhooks and send them to all recipients
 	go func() {
 		for m := range messages {
-			for _, r := range strings.Split(xr, ",") {
+			// use recipients configured in ENV
+			recipients := strings.Split(xr, ",")
+			if m.recipients != nil {
+				// use recipients from request parameter
+				recipients = m.recipients
+			}
+			for _, r := range recipients {
 				recipient, err := jid.Parse(r)
-				panicOnErr(err)
+				if err != nil {
+					continue
+				}
 				// try to send message, ignore errors
 				_ = xmppSession.Encode(ctx, MessageBody{
 					Message: stanza.Message{
@@ -160,7 +168,7 @@ func main() {
 						From: myjid,
 						Type: stanza.ChatMessage,
 					},
-					Body: m,
+					Body: m.message,
 				})
 			}
 		}
